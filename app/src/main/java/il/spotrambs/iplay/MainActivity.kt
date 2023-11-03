@@ -105,7 +105,6 @@ class MainActivity : AppCompatActivity() {
                 if (url != null) {
                     val container = findViewById<FrameLayout>(R.id.canta)
                     container.addView(webView)
-
                     webView.settings.apply {
                         javaScriptEnabled = true
                         displayZoomControls = false

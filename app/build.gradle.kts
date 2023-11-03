@@ -58,6 +58,6 @@ dependencies {
     implementation("androidx.room:room-guava:$room_version")
     testImplementation("androidx.room:room-testing:$room_version")
     implementation("androidx.room:room-paging:$room_version")
-    implementation("androidx.browser:browser:1.3.0")
+    implementation("androidx.browser:browser:1.6.0")
 
 }

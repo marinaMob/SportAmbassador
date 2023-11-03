@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "683316873015",
+    "project_id": "test-2591e",
+    "storage_bucket": "test-2591e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:683316873015:android:0de1ae18f6c17b14d0fcb2",
+        "android_client_info": {
+          "package_name": "il.spotrambs.iplay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDf8bWv9TCEo2LbQwluMuM-TfH-GEQ5dkw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
