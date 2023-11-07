@@ -1,214 +1,52 @@
 package il.spotrambs.iplay
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.graphics.Color
-import android.os.Bundle
-import android.view.View
-import android.webkit.CookieManager
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.FrameLayout
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.airbnb.lottie.LottieAnimationView
-import com.airbnb.lottie.LottieProperty
-import com.airbnb.lottie.model.KeyPath
-import com.appsflyer.AppsFlyerConversionListener
-import com.appsflyer.AppsFlyerLib
-import com.google.android.gms.ads.identifier.AdvertisingIdClient
-import com.onesignal.OneSignal
-import il.spotrambs.iplay.ui.MainGameActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-
-enum class CampaignType {
-    WEBVIEW,
-    NEW_ACTIVITY
-}
+import android.os.Bundle
+import androidx.browser.customtabs.CustomTabsIntent
+import il.spotrambs.iplay.databinding.ActivityMainBinding
+import il.spotrambs.iplay.game.baseball.BaseballInfoActivity
+import il.spotrambs.iplay.game.basketball.BasketballInfoActivity
+import il.spotrambs.iplay.game.cricket.CricketInfoActivity
+import il.spotrambs.iplay.game.football.FootballInfoActivity
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var webView: WebView
-    private lateinit var sharPref: SharedPreferences
-    private val LOCATION_PERMISSION_REQUEST_CODE = 123
 
-    @SuppressLint("SetJavaScriptEnabled")
+    lateinit var binding: ActivityMainBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sharPref = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        CoroutineScope(Dispatchers.Main).launch {
-            val appsFlyerDataFetcher = AppsFlyerDataFetcher(this@MainActivity)
-            appsFlyerDataFetcher.startDataFetching()
-            val advertisingId = fetchAdvertisingId()
-            appsFlyerDataFetcher.conversionDataFlow.collect { data ->
-                data?.let { map ->
-                    val campaignType = when (map["campaign"] as? String) {
-                        null -> CampaignType.NEW_ACTIVITY
-                        else -> CampaignType.WEBVIEW
-                    }
-                    handleCampaign(campaignType, map, advertisingId.toString())
-                }
-            }
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+
+        binding.imPolisy.setOnClickListener{
+            openCustomTab("https://doc-hosting.flycricket.io/testapp-privacy-policy/ff23acb9-75f9-48d1-bd6e-6ca64f925662/privacy")
+        }
+        binding.btnFootball.setOnClickListener {
+                val intent = Intent(this, FootballInfoActivity::class.java)
+                startActivity(intent)
         }
 
-        setContentView(R.layout.activity_main)
-
-        if (!isPermissionGranted()) {
-            requestLocationPermission()
+        binding.btnBaseball.setOnClickListener {
+            val intent = Intent(this, BaseballInfoActivity::class.java)
+            startActivity(intent)
         }
 
-        webView = WebView(this@MainActivity)
+        binding.btnBasketball.setOnClickListener {
+            val intent = Intent(this, BasketballInfoActivity::class.java)
+            startActivity(intent)
+        }
 
-
-        val lottieAnimationView: LottieAnimationView = findViewById(R.id.animationView)
-        lottieAnimationView.addValueCallback(
-            KeyPath("Shape Layer 1", "**"),
-            LottieProperty.COLOR
-        ) { Color.BLACK }
-
-        lottieAnimationView.addValueCallback(
-            KeyPath("Shape Layer 2", "**"),
-            LottieProperty.COLOR
-        ) { Color.BLACK }
-
-        lottieAnimationView.addValueCallback(
-            KeyPath("Shape Layer 3", "**"),
-            LottieProperty.COLOR
-        ) { Color.BLACK }
-
-
-        lottieAnimationView.addValueCallback(
-            KeyPath("Shape Layer 4", "**"),
-            LottieProperty.COLOR
-        ) { Color.BLACK }
-    }
-
-    private fun handleCampaign(campaignType: CampaignType, map: Map<String, Any>, advertisingId: String) {
-        when (campaignType) {
-            CampaignType.WEBVIEW -> {
-                OneSignal.login(advertisingId)
-                OneSignal.User.pushSubscription.optIn()
-                val url = map["campaign"] as? String
-                if (url != null) {
-                    val container = findViewById<FrameLayout>(R.id.canta)
-                    container.addView(webView)
-                    webView.settings.apply {
-                        javaScriptEnabled = true
-                        displayZoomControls = false
-                        builtInZoomControls = true
-                        setSupportZoom(true)
-                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                        javaScriptCanOpenWindowsAutomatically = true
-                        cacheMode = WebSettings.LOAD_DEFAULT
-                        loadWithOverviewMode = true
-                        useWideViewPort = true
-                        domStorageEnabled = true
-                        allowContentAccess = true
-                        databaseEnabled = true
-                        allowFileAccess = true
-                        allowFileAccessFromFileURLs = true
-                        allowUniversalAccessFromFileURLs = true
-                        displayZoomControls = false
-                        userAgentString =
-                            userAgentString.replace("; wv", "").replace(" Version/4.0", "")
-                    }
-
-                    webView.webViewClient = object : WebViewClient() {
-
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            super.onPageFinished(view, url)
-                            findViewById<LottieAnimationView>(R.id.animationView).visibility =
-                                View.GONE
-                            saveLastUrl(url)
-                        }
-                    }
-                    webView.webChromeClient = object : WebChromeClient() {
-                    }
-
-                    CookieManager.getInstance().apply {
-                        setAcceptCookie(true)
-                        setAcceptThirdPartyCookies(webView, true)
-                    }
-                    val builder = StringBuilder("https://sportipl.store/H3SYC9?")
-                    builder.append("с=").append(url)
-                    builder.append("&ad=").append(advertisingId)
-                    val link = builder.toString()
-                    val ygwefuywegfuygwef = sharPref.getString("wuehfwiuef", link)
-                    webView.loadUrl(ygwefuywegfuygwef.toString())
-                }
-            }
-            CampaignType.NEW_ACTIVITY -> {
-                OneSignal.User.pushSubscription.optOut()
-                startActivity(Intent(this@MainActivity, MainGameActivity::class.java))
-                finish()
-            }
+        binding.btnCricket.setOnClickListener {
+            val intent = Intent(this, CricketInfoActivity::class.java)
+            startActivity(intent)
         }
     }
 
-    class AppsFlyerDataFetcher(private val context: Context) {
-        private val mutableConversionDataFlow = MutableSharedFlow<MutableMap<String, Any>?>()
-        val conversionDataFlow: Flow<MutableMap<String, Any>?> = mutableConversionDataFlow.asSharedFlow()
-        private val appsFlyerConversionListener = object : AppsFlyerConversionListener {
-            override fun onConversionDataSuccess(data: MutableMap<String, Any>?) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    mutableConversionDataFlow.emit(data)
-                }
-            }
-            override fun onConversionDataFail(p0: String?) {
-            }
-            override fun onAppOpenAttribution(p0: MutableMap<String, String>?) {
-            }
-            override fun onAttributionFailure(p0: String?) {
-            }
-        }
-        init {
-            AppsFlyerLib.getInstance().init("3LWCCY7NyKkcwPMoQyg7ME", appsFlyerConversionListener, context)
-        }
-        fun startDataFetching() {
-            AppsFlyerLib.getInstance().start(context)
-        }
-    }
-    private suspend fun fetchAdvertisingId(): String? {
-        return try {
-            val info = withContext(Dispatchers.IO) {
-                AdvertisingIdClient.getAdvertisingIdInfo(applicationContext)
-            }
-            info.id
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun saveLastUrl(url: String?) {
-        val isFirstOpening = sharPref.getString("wuehfwiuef", null) == null
-        if (url != null && isFirstOpening) {
-            sharPref.edit().putString("wuehfwiuef", url).apply()
-        }
-    }
-
-    override fun onBackPressed() {
-        if(webView.canGoBack()) {
-            webView.goBack()
-        }
-    }
-    private fun isPermissionGranted(): Boolean {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun requestLocationPermission() {
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
+    private fun openCustomTab(url: String) {
+        val builder = CustomTabsIntent.Builder()
+        val customTabsIntent = builder.build()
+        customTabsIntent.launchUrl(this, Uri.parse(url))
     }
 }
